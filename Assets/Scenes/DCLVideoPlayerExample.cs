@@ -8,9 +8,26 @@ public class DCLVideoPlayerExample : MonoBehaviour
 
     private DCLVideoPlayer videoPlayer;
 
+    public void QuitGame()
+    {
+        // save any game data here
+        #if UNITY_EDITOR
+            // Application.Quit() does not work in the editor so
+            // UnityEditor.EditorApplication.isPlaying need to be set to false to end the game
+            UnityEditor.EditorApplication.isPlaying = false;
+        #else
+            Application.Quit();
+        #endif
+    }
+
     private void Awake()
     {
         videoPlayer = new DCLVideoPlayer(videoPath);
+        if (!videoPlayer.IsValid())
+        {
+            QuitGame();
+            return;
+        }
         var material = GetComponent<MeshRenderer>().sharedMaterial;
         var texture = videoPlayer.GetTexture();
         material.mainTexture = texture;
@@ -20,7 +37,8 @@ public class DCLVideoPlayerExample : MonoBehaviour
 
     private void Update()
     {
-        videoPlayer.UpdateVideoTexture();
+        if (videoPlayer.IsValid())
+            videoPlayer.UpdateVideoTexture();
     }
 
     public void PlayPause()

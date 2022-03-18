@@ -83,14 +83,21 @@ public class DCLVideoPlayer : IDisposable
         localObject = new GameObject("_VideoPlayer");
 
         vpc = DCLVideoPlayerWrapper.player_create(videoPath);
-        globalNativeCreateTime = DCLVideoPlayerWrapper.player_get_global_time(vpc);
-        globalDSPCreateTime = AudioSettings.dspTime;
+        if (vpc != IntPtr.Zero) {
+            globalNativeCreateTime = DCLVideoPlayerWrapper.player_get_global_time(vpc);
+            globalDSPCreateTime = AudioSettings.dspTime;
 
-        DCLVideoPlayerWrapper.player_get_video_format(vpc, ref videoWidth, ref videoHeight);
-        videoTexture = new Texture2D(videoWidth, videoHeight, TextureFormat.RGB24, false, false);
-        videoSize = videoWidth * videoHeight * 3;
+            DCLVideoPlayerWrapper.player_get_video_format(vpc, ref videoWidth, ref videoHeight);
+            videoTexture = new Texture2D(videoWidth, videoHeight, TextureFormat.RGB24, false, false);
+            videoSize = videoWidth * videoHeight * 3;
 
-        initAudioSource();
+            initAudioSource();
+        }
+    }
+
+    public bool IsValid()
+    {
+        return vpc != IntPtr.Zero;
     }
 
     public void Dispose()

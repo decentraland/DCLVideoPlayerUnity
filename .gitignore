@@ -11,6 +11,10 @@ TestResults/
 Assets/InitTestScene*.unity
 Assets/InitTestScene*.unity.meta
 **/CurrentTestImages/
+/AssetBundles/
+Logs/
+Assets/BuildReports*
+/CodeCoverage/
 
 .DS_Store
 .DS_Store?

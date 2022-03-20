@@ -12,7 +12,7 @@ Assets/InitTestScene*.unity
 Assets/InitTestScene*.unity.meta
 **/CurrentTestImages/
 /AssetBundles/
-Logs/
+/Logs/
 Assets/BuildReports*
 /CodeCoverage/
 

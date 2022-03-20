@@ -232,7 +232,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1cb0afbfb325348a3852c7f476a80ce5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  videoPath: http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4
+  videoPath: https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4
 --- !u!1 &106554843
 GameObject:
   m_ObjectHideFlags: 0

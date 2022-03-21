@@ -23,22 +23,40 @@ public class DCLVideoPlayerExample : MonoBehaviour
     private void Awake()
     {
         videoPlayer = new DCLVideoPlayer(videoPath);
-        if (!videoPlayer.IsValid())
-        {
-            QuitGame();
-            return;
-        }
-        var material = GetComponent<MeshRenderer>().sharedMaterial;
-        var texture = videoPlayer.GetTexture();
-        material.mainTexture = texture;
-        videoPlayer.SetLoop(true);
-        videoPlayer.Play();
+    }
+
+    private void OnDestroy()
+    {
+        videoPlayer.Dispose();
+        DCLVideoPlayer.WaitAllThreads();
     }
 
     private void Update()
     {
-        if (videoPlayer.IsValid())
-            videoPlayer.UpdateVideoTexture();
+        switch (videoPlayer.GetState())
+        {
+            case DCLVideoPlayer.VideoPlayerState.Loading:
+                break;
+            case DCLVideoPlayer.VideoPlayerState.Error:
+                Debug.LogError("Decoder error");
+                QuitGame();
+                break;
+            case DCLVideoPlayer.VideoPlayerState.Ready:
+                if (videoPlayer.GetTexture() == null)
+                {
+                    videoPlayer.PrepareTexture();
+                    var material = GetComponent<MeshRenderer>().sharedMaterial;
+                    var texture = videoPlayer.GetTexture();
+                    material.mainTexture = texture;
+                    videoPlayer.SetLoop(true);
+                    videoPlayer.Play();
+                }
+                else
+                {
+                    videoPlayer.UpdateVideoTexture();
+                }
+                break;
+        }
     }
 
     public void PlayPause()
@@ -70,5 +88,15 @@ public class DCLVideoPlayerExample : MonoBehaviour
     public void LessVolume()
     {
         videoPlayer.SetVolume(videoPlayer.GetVolume() - 0.1f);
+    }
+    
+    public void MoreSpeed()
+    {
+        videoPlayer.SetPlaybackRate(videoPlayer.GetPlaybackRate() + 0.25);
+    }
+
+    public void LessSpeed()
+    {
+        videoPlayer.SetPlaybackRate(videoPlayer.GetPlaybackRate() - 0.25);
     }
 }

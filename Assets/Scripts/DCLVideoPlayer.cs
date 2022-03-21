@@ -8,7 +8,18 @@ using UnityEngine;
 
 public class DCLVideoPlayer : IDisposable
 {
+    public class CoroutineStarter : MonoBehaviour
+    {
+    }
+    public enum VideoPlayerState
+    {
+        Loading = 0,
+        Ready = 1,
+        Error = 2,
+    }
     private GameObject localObject;
+    private readonly MonoBehaviour coroutineStarter;
+
 
     private IntPtr vpc;
     
@@ -37,12 +48,19 @@ public class DCLVideoPlayer : IDisposable
     private int playedAudioDataLength = 0; //  Data length exclude the overlap length.
 
     // Time control
+    private double playbackRate = 1.0;
     private double firstAudioFrameTime = -1.0;
     private double lastVideoFrameTime = -1.0;
     private double audioProgressTime = -1.0f; //	Avoid to schedule the same audio data set.
     private double globalNativeCreateTime = 0.0f;
     private double globalDSPCreateTime = 0.0f;
     private bool cleanAudio = false;
+    private bool playerReady = false;
+    
+    public static void WaitAllThreads()
+    {
+        DCLVideoPlayerWrapper.player_join_threads();
+    }
 
     private void initAudioSource()
     {
@@ -81,27 +99,45 @@ public class DCLVideoPlayer : IDisposable
     public DCLVideoPlayer(string videoPath)
     {
         localObject = new GameObject("_VideoPlayer");
-
-        vpc = DCLVideoPlayerWrapper.player_create(videoPath);
-        if (vpc != IntPtr.Zero) {
-            globalNativeCreateTime = DCLVideoPlayerWrapper.player_get_global_time(vpc);
-            globalDSPCreateTime = AudioSettings.dspTime;
-
-            DCLVideoPlayerWrapper.player_get_video_format(vpc, ref videoWidth, ref videoHeight);
-            videoTexture = new Texture2D(videoWidth, videoHeight, TextureFormat.RGB24, false, false);
-            videoSize = videoWidth * videoHeight * 3;
-
-            initAudioSource();
-        }
+        coroutineStarter = localObject.AddComponent<CoroutineStarter>();
+        coroutineStarter.StartCoroutine(InitCoroutine(videoPath));
     }
 
-    public bool IsValid()
+    private IEnumerator InitCoroutine(string videoPath)
     {
-        return vpc != IntPtr.Zero;
+        vpc = DCLVideoPlayerWrapper.player_create(videoPath);
+        
+        VideoPlayerState result = 0;
+        do
+        {
+            yield return null;
+            result = (VideoPlayerState)DCLVideoPlayerWrapper.player_get_state(vpc);
+        } while (result == VideoPlayerState.Loading);
+
+        if (result == VideoPlayerState.Error) yield break;
+        
+        globalNativeCreateTime = DCLVideoPlayerWrapper.player_get_global_time(vpc);
+        globalDSPCreateTime = AudioSettings.dspTime;
+
+        DCLVideoPlayerWrapper.player_get_video_format(vpc, ref videoWidth, ref videoHeight);
+
+        initAudioSource();
+
+        playerReady = true;
+    }
+
+    public VideoPlayerState GetState()
+    {
+        VideoPlayerState state = (VideoPlayerState) DCLVideoPlayerWrapper.player_get_state(vpc);
+        if (state == VideoPlayerState.Ready && !playerReady)
+            return VideoPlayerState.Loading;
+        else
+            return state;
     }
 
     public void Dispose()
     {
+        Debug.Log("Dispose DCLVideoPlayer!!");
         DCLVideoPlayerWrapper.player_destroy(vpc);
     }
 
@@ -211,14 +247,6 @@ public class DCLVideoPlayer : IDisposable
         foreach (var src in audioSource) src.Stop();
     }
 
-    public void Update()
-    {
-        DCLVideoPlayerWrapper.player_process(vpc); // Thread please
-            
-        GrabVideoFrame();
-        GrabAudioFrame();
-    }
-
     public void Play()
     {
         if (DCLVideoPlayerWrapper.player_is_playing(vpc) == 0)
@@ -237,12 +265,20 @@ public class DCLVideoPlayer : IDisposable
 
     public void UpdateVideoTexture()
     {
-        Update();
+        GrabVideoFrame();
+        GrabAudioFrame();
+
         if (newFrame && videoTexture != null)
         {
             videoTexture.Apply();
             newFrame = false;
         }
+    }
+
+    public void PrepareTexture()
+    {
+        videoTexture = new Texture2D(videoWidth, videoHeight, TextureFormat.RGB24, false, false);
+        videoSize = videoWidth * videoHeight * 3;
     }
 
     public Texture2D GetTexture()
@@ -315,5 +351,32 @@ public class DCLVideoPlayer : IDisposable
     public bool HasLoop()
     {
         return DCLVideoPlayerWrapper.player_has_loop(vpc) == 1;
+    }
+
+    public int GetVideoWidth()
+    {
+        return videoWidth;
+    }
+    
+    public int GetVideoHeight()
+    {
+        return videoHeight;
+    }
+
+    public void SetPlaybackRate(double rate)
+    {
+        if (playbackRate > 0.0)
+        {
+            playbackRate = rate;
+            
+            audioDataTime = ((double) AUDIO_FRAME_SIZE / audioFrequency) / rate;
+
+            DCLVideoPlayerWrapper.player_set_playback_rate(vpc, rate);
+        }
+    }
+    
+    public double GetPlaybackRate()
+    {
+        return playbackRate;
     }
 }

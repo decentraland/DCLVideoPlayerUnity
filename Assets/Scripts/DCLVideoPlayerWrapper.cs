@@ -6,6 +6,9 @@ public class DCLVideoPlayerWrapper
     private const string NATIVE_LIBRARY_NAME = "libdclvideoplayer";
     
     [DllImport(NATIVE_LIBRARY_NAME)]
+    public static extern void player_join_threads();
+    
+    [DllImport(NATIVE_LIBRARY_NAME)]
     public static extern IntPtr player_create(string url);
     
     [DllImport(NATIVE_LIBRARY_NAME)]
@@ -22,6 +25,9 @@ public class DCLVideoPlayerWrapper
 
     [DllImport(NATIVE_LIBRARY_NAME)]
     public static extern int player_is_buffering(IntPtr vpc);
+    
+    [DllImport(NATIVE_LIBRARY_NAME)]
+    public static extern int player_get_state(IntPtr vpc);
 
     [DllImport(NATIVE_LIBRARY_NAME)]
     public static extern void player_set_paused(IntPtr vpc, int paused);
@@ -39,11 +45,11 @@ public class DCLVideoPlayerWrapper
     public static extern float player_get_playback_position(IntPtr vpc);
 
     [DllImport(NATIVE_LIBRARY_NAME)]
+    public static extern void player_set_playback_rate(IntPtr vpc, double rate);
+    
+    [DllImport(NATIVE_LIBRARY_NAME)]
     public static extern void player_seek(IntPtr vpc, float time);
 
-    [DllImport(NATIVE_LIBRARY_NAME)]
-    public static extern void player_process(IntPtr vpc);
-    
     [DllImport(NATIVE_LIBRARY_NAME)]
     public static extern double player_grab_video_frame(IntPtr vpc, ref IntPtr releasePtr, ref IntPtr data);
 

@@ -16,5 +16,10 @@
     "type": "git",
     "url": "git+https://github.com/decentraland/DCLVideoPlayerUnity.git"
   },
-  "keywords": []
+  "keywords": [],
+  "author": {
+    "name": "Decentraland",
+    "email": "contact@decentraland.org",
+    "url": "https://www.decentraland.org"
+  }
 }

@@ -6,7 +6,7 @@ public class DCLVideoPlayerWrapper
     private const string NATIVE_LIBRARY_NAME = "libdclvideoplayer";
     
     [DllImport(NATIVE_LIBRARY_NAME)]
-    public static extern void player_join_threads();
+    public static extern void player_stop_all_threads();
     
     [DllImport(NATIVE_LIBRARY_NAME)]
     public static extern IntPtr player_create(string url);

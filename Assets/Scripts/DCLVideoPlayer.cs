@@ -107,6 +107,8 @@ public class DCLVideoPlayer : IDisposable
     {
         vpc = DCLVideoPlayerWrapper.player_create(videoPath);
         
+        DCLVideoPlayerWrapper.player_play(vpc);
+
         VideoPlayerState result = 0;
         do
         {
@@ -114,7 +116,11 @@ public class DCLVideoPlayer : IDisposable
             result = (VideoPlayerState)DCLVideoPlayerWrapper.player_get_state(vpc);
         } while (result == VideoPlayerState.Loading);
 
-        if (result == VideoPlayerState.Error) yield break;
+        if (result == VideoPlayerState.Error)
+        {
+            Debug.LogError("VideoPlayer Error");
+            yield break;
+        }
         
         globalNativeCreateTime = DCLVideoPlayerWrapper.player_get_global_time(vpc);
         globalDSPCreateTime = AudioSettings.dspTime;
@@ -226,8 +232,8 @@ public class DCLVideoPlayer : IDisposable
                         double playTimeDSP = nativeTime2dspTime(playTime);
                         double endTimeDSP = nativeTime2dspTime(endTime);
 
-                        audioSource[swapIndex].PlayScheduled(nativeTime2dspTime(playTime));
-                        audioSource[swapIndex].SetScheduledEndTime(nativeTime2dspTime(endTime));
+                        audioSource[swapIndex].PlayScheduled(playTimeDSP);
+                        audioSource[swapIndex].SetScheduledEndTime(endTimeDSP);
                         audioSource[swapIndex].time = (float) OVERLAP_TIME;
                         swapIndex = (swapIndex + 1) % SWAP_BUFFER_NUM;
                     }

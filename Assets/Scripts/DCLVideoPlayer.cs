@@ -19,6 +19,7 @@ public class DCLVideoPlayer : IDisposable
     }
     private GameObject localObject;
     private readonly MonoBehaviour coroutineStarter;
+    private Coroutine runCoroutine;
 
 
     private IntPtr vpc;
@@ -57,9 +58,9 @@ public class DCLVideoPlayer : IDisposable
     private bool cleanAudio = false;
     private bool playerReady = false;
     
-    public static void WaitAllThreads()
+    public static void StopAllThreads()
     {
-        DCLVideoPlayerWrapper.player_join_threads();
+        DCLVideoPlayerWrapper.player_stop_all_threads();
     }
 
     private void initAudioSource()
@@ -100,7 +101,7 @@ public class DCLVideoPlayer : IDisposable
     {
         localObject = new GameObject("_VideoPlayer");
         coroutineStarter = localObject.AddComponent<CoroutineStarter>();
-        coroutineStarter.StartCoroutine(InitCoroutine(videoPath));
+        runCoroutine = coroutineStarter.StartCoroutine(InitCoroutine(videoPath));
     }
 
     private IEnumerator InitCoroutine(string videoPath)
@@ -130,6 +131,13 @@ public class DCLVideoPlayer : IDisposable
         initAudioSource();
 
         playerReady = true;
+
+        while (true)
+        {
+            GrabVideoFrame();
+            GrabAudioFrame();
+            yield return null;
+        }
     }
 
     public VideoPlayerState GetState()
@@ -143,6 +151,8 @@ public class DCLVideoPlayer : IDisposable
 
     public void Dispose()
     {
+        if (runCoroutine != null)
+            coroutineStarter.StopCoroutine(runCoroutine);
         Debug.Log("Dispose DCLVideoPlayer!!");
         DCLVideoPlayerWrapper.player_destroy(vpc);
     }
@@ -271,9 +281,6 @@ public class DCLVideoPlayer : IDisposable
 
     public void UpdateVideoTexture()
     {
-        GrabVideoFrame();
-        GrabAudioFrame();
-
         if (newFrame && videoTexture != null)
         {
             videoTexture.Apply();
@@ -283,6 +290,7 @@ public class DCLVideoPlayer : IDisposable
 
     public void PrepareTexture()
     {
+        Debug.Log($"{this} UpdateVideoTexture");
         videoTexture = new Texture2D(videoWidth, videoHeight, TextureFormat.RGB24, false, false);
         videoTextureSize = videoWidth * videoHeight * 3;
     }

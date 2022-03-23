@@ -28,7 +28,7 @@ public class DCLVideoPlayerExample : MonoBehaviour
     private void OnDestroy()
     {
         videoPlayer.Dispose();
-        DCLVideoPlayer.WaitAllThreads();
+        DCLVideoPlayer.StopAllThreads();
     }
 
     private void Update()

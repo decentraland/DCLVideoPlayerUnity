@@ -9,7 +9,7 @@ public class DCLVideoPlayerWrapper
     public static extern void player_stop_all_threads();
     
     [DllImport(NATIVE_LIBRARY_NAME)]
-    public static extern IntPtr player_create(string url);
+    public static extern IntPtr player_create(string url, int convert_to_rgb24);
     
     [DllImport(NATIVE_LIBRARY_NAME)]
     public static extern void player_destroy(IntPtr vpc);

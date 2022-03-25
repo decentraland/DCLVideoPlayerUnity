@@ -57,6 +57,8 @@ public class DCLVideoPlayer : IDisposable
     private double globalDSPCreateTime = 0.0f;
     private bool cleanAudio = false;
     private bool playerReady = false;
+
+    private bool convertToRGB = true;
     
     public static void StopAllThreads()
     {
@@ -97,8 +99,9 @@ public class DCLVideoPlayer : IDisposable
         return (nativeTime - globalNativeCreateTime) + globalDSPCreateTime;
     }
 
-    public DCLVideoPlayer(string videoPath)
+    public DCLVideoPlayer(string videoPath, bool convertToRGB = true)
     {
+        this.convertToRGB = convertToRGB;
         localObject = new GameObject("_VideoPlayer");
         coroutineStarter = localObject.AddComponent<CoroutineStarter>();
         runCoroutine = coroutineStarter.StartCoroutine(InitCoroutine(videoPath));
@@ -106,7 +109,7 @@ public class DCLVideoPlayer : IDisposable
 
     private IEnumerator InitCoroutine(string videoPath)
     {
-        vpc = DCLVideoPlayerWrapper.player_create(videoPath);
+        vpc = DCLVideoPlayerWrapper.player_create(videoPath, convertToRGB ? 1 : 0);
         
         DCLVideoPlayerWrapper.player_play(vpc);
 
@@ -134,7 +137,8 @@ public class DCLVideoPlayer : IDisposable
 
         while (true)
         {
-            GrabVideoFrame();
+            if (videoTexture != null)
+                GrabVideoFrame();
             GrabAudioFrame();
             yield return null;
         }
@@ -151,7 +155,7 @@ public class DCLVideoPlayer : IDisposable
 
     public void Dispose()
     {
-        if (runCoroutine != null)
+        if (runCoroutine != null && coroutineStarter != null)
             coroutineStarter.StopCoroutine(runCoroutine);
         Debug.Log("Dispose DCLVideoPlayer!!");
         DCLVideoPlayerWrapper.player_destroy(vpc);
@@ -160,13 +164,12 @@ public class DCLVideoPlayer : IDisposable
     private void GrabVideoFrame()
     {
         var videoReleasePtr = IntPtr.Zero;
-        var videoDataPtr = IntPtr.Zero;
         do {
+            IntPtr[] videoDataPtr = new IntPtr[3];
             videoReleasePtr = IntPtr.Zero;
-            videoDataPtr = IntPtr.Zero;
-            double videoNativeTime = DCLVideoPlayerWrapper.player_grab_video_frame(vpc, ref videoReleasePtr, ref videoDataPtr);
+            double videoNativeTime = DCLVideoPlayerWrapper.player_grab_video_frame(vpc, ref videoReleasePtr, ref videoDataPtr[0]);
 
-            if (videoDataPtr != IntPtr.Zero)
+            if (videoReleasePtr != IntPtr.Zero)
             {
                 if (lastVideoFrameTime > videoNativeTime && firstAudioFrameTime != -1.0) {
                     // LOOP DETECTED
@@ -175,17 +178,17 @@ public class DCLVideoPlayer : IDisposable
                     audioProgressTime -= videoDuration;
                 }
                 lastVideoFrameTime = videoNativeTime;
-
-                // Main thread
-                if (videoDataPtr != IntPtr.Zero)
+                
+                if (videoReleasePtr != IntPtr.Zero)
                 {
-                    videoTexture.LoadRawTextureData(videoDataPtr, videoTextureSize);
+                    Debug.Log("New frame!");
+                    videoTexture.LoadRawTextureData(videoDataPtr[0], videoTextureSize);
                     newFrame = true;
                 }
 
                 DCLVideoPlayerWrapper.player_release_frame(vpc, videoReleasePtr);
             }
-        } while (videoDataPtr != IntPtr.Zero);
+        } while (videoReleasePtr != IntPtr.Zero);
     }
 
     private void GrabAudioFrame()

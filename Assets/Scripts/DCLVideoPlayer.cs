@@ -137,7 +137,7 @@ public class DCLVideoPlayer : IDisposable
 
         while (true)
         {
-            if (videoTexture != null)
+            if (videoTextureSize != 0)
                 GrabVideoFrame();
             GrabAudioFrame();
             yield return null;
@@ -179,9 +179,8 @@ public class DCLVideoPlayer : IDisposable
                 }
                 lastVideoFrameTime = videoNativeTime;
                 
-                if (videoReleasePtr != IntPtr.Zero)
+                if (videoReleasePtr != IntPtr.Zero && videoDataPtr[0] != IntPtr.Zero)
                 {
-                    Debug.Log("New frame!");
                     videoTexture.LoadRawTextureData(videoDataPtr[0], videoTextureSize);
                     newFrame = true;
                 }

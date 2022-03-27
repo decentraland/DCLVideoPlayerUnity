@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Threading;
 using UnityEngine;
+using Object = System.Object;
 
 public class DCLVideoPlayer : IDisposable
 {
@@ -26,6 +27,8 @@ public class DCLVideoPlayer : IDisposable
     
     // Video
     private bool newFrame = false;
+    private IntPtr lastVideoData = IntPtr.Zero;
+    private IntPtr lastVideoDataReleasePtr = IntPtr.Zero;
     private Texture2D videoTexture;
     private int videoWidth = 0;
     private int videoHeight = 0;
@@ -155,10 +158,23 @@ public class DCLVideoPlayer : IDisposable
 
     public void Dispose()
     {
+        ReleaseLastVideoData();
         if (runCoroutine != null && coroutineStarter != null)
             coroutineStarter.StopCoroutine(runCoroutine);
         Debug.Log("Dispose DCLVideoPlayer!!");
         DCLVideoPlayerWrapper.player_destroy(vpc);
+        vpc = IntPtr.Zero;
+        UnityEngine.Object.Destroy(localObject);
+    }
+
+    private void ReleaseLastVideoData()
+    {
+        if (lastVideoDataReleasePtr != IntPtr.Zero)
+        {
+            DCLVideoPlayerWrapper.player_release_frame(vpc, lastVideoDataReleasePtr);
+            lastVideoDataReleasePtr = IntPtr.Zero;
+            lastVideoData = IntPtr.Zero;
+        }
     }
 
     private void GrabVideoFrame()
@@ -181,12 +197,11 @@ public class DCLVideoPlayer : IDisposable
                 
                 if (videoReleasePtr != IntPtr.Zero)
                 {
-                    Debug.Log("New frame!");
-                    videoTexture.LoadRawTextureData(videoDataPtr[0], videoTextureSize);
+                    ReleaseLastVideoData();
+                    lastVideoData = videoDataPtr[0];
+                    lastVideoDataReleasePtr = videoReleasePtr;
                     newFrame = true;
                 }
-
-                DCLVideoPlayerWrapper.player_release_frame(vpc, videoReleasePtr);
             }
         } while (videoReleasePtr != IntPtr.Zero);
     }
@@ -284,8 +299,9 @@ public class DCLVideoPlayer : IDisposable
 
     public void UpdateVideoTexture()
     {
-        if (newFrame && videoTexture != null)
+        if (newFrame && videoTexture != null && lastVideoData != IntPtr.Zero)
         {
+            videoTexture.LoadRawTextureData(lastVideoData, videoTextureSize);
             videoTexture.Apply();
             newFrame = false;
         }

@@ -10,11 +10,28 @@ public class DCLVideoPlayerExample : MonoBehaviour
     private DCLVideoPlayer videoPlayer;
 
     public InputField inputField = null;
+    public Slider slider = null;
+    public Text positionText = null;
+    public GameObject bufferingUI;
+    private bool sliderChangedByUser = true;
 
     private void Awake()
     {
         inputField.text = videoPath;
         videoPlayer = new DCLVideoPlayer(videoPath);
+        
+        slider.onValueChanged.AddListener(delegate { OnSliderChanged(); });
+    }
+
+    private void OnSliderChanged()
+    {
+        if (sliderChangedByUser)
+        {
+            float sliderValue = slider.value;
+            Debug.Log($"Slider Changed: {sliderValue}");
+            if (videoPlayer != null)
+                videoPlayer.SetSeekTime(sliderValue);
+        }
     }
 
     private void OnDestroy()
@@ -35,21 +52,51 @@ public class DCLVideoPlayerExample : MonoBehaviour
                     videoPlayer.Dispose();
                     break;
                 case DCLVideoPlayer.VideoPlayerState.Ready:
-                    if (videoPlayer.GetTexture() == null)
+                    if (videoPlayer.HasVideo())
                     {
-                        videoPlayer.PrepareTexture();
-                        var material = GetComponent<MeshRenderer>().sharedMaterial;
-                        var texture = videoPlayer.GetTexture();
-                        material.mainTexture = texture;
-                        videoPlayer.SetLoop(true);
-                        videoPlayer.Play();
+                        if (videoPlayer.GetTexture() == null)
+                        {
+                            videoPlayer.PrepareTexture();
+                            var material = GetComponent<MeshRenderer>().sharedMaterial;
+                            var texture = videoPlayer.GetTexture();
+                            material.mainTexture = texture;
+                            videoPlayer.SetLoop(true);
+                            videoPlayer.Play();
+
+                            slider.minValue = 0;
+                            slider.value = 0;
+                            slider.maxValue = videoPlayer.GetDuration();
+                        }
+                        else
+                        {
+                            videoPlayer.UpdateVideoTexture();
+                            UpdateSlider();
+
+                            bufferingUI.SetActive(videoPlayer.IsBuffering());
+                        }
                     }
-                    else
-                    {
-                        videoPlayer.UpdateVideoTexture();
-                    }
+
                     break;
             }
+        }
+    }
+
+    private string GetPositionText(float time)
+    {
+        int minutes = (int)(time / 60.0f);
+        int seconds = (int)(time % 60.0f);
+        return $"{minutes:00}:{seconds:00}";
+    }
+    private void UpdateSlider()
+    {
+        if (videoPlayer.IsPlaying())
+        {
+            sliderChangedByUser = false;
+            slider.value = videoPlayer.GetPlaybackPosition();
+            sliderChangedByUser = true;
+
+            positionText.text = GetPositionText(videoPlayer.GetPlaybackPosition()) + " / " +
+                                GetPositionText(videoPlayer.GetDuration());
         }
     }
 

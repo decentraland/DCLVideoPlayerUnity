@@ -60,6 +60,12 @@ public class DCLVideoPlayerWrapper
     public static extern void player_release_frame(IntPtr vpc, IntPtr data);
     
     [DllImport(NATIVE_LIBRARY_NAME)]
+    public static extern int player_video_is_enabled(IntPtr vpc);
+
+    [DllImport(NATIVE_LIBRARY_NAME)]
+    public static extern int player_audio_is_enabled(IntPtr vpc);
+    
+    [DllImport(NATIVE_LIBRARY_NAME)]
     public static extern void player_get_video_format(IntPtr vpc, ref int width, ref int height);
 
     [DllImport(NATIVE_LIBRARY_NAME)]

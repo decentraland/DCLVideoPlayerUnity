@@ -61,6 +61,9 @@ public class DCLVideoPlayer : IDisposable
     private bool cleanAudio = false;
     private bool playerReady = false;
 
+    private bool hasVideo = false;
+    private bool hasAudio = false;
+
     private bool convertToRGB = true;
     
     public static void StopAllThreads()
@@ -132,17 +135,24 @@ public class DCLVideoPlayer : IDisposable
         globalNativeCreateTime = DCLVideoPlayerWrapper.player_get_global_time(vpc);
         globalDSPCreateTime = AudioSettings.dspTime;
 
-        DCLVideoPlayerWrapper.player_get_video_format(vpc, ref videoWidth, ref videoHeight);
+        hasVideo = DCLVideoPlayerWrapper.player_video_is_enabled(vpc) == 1;
+        hasAudio = DCLVideoPlayerWrapper.player_audio_is_enabled(vpc) == 1;
 
-        initAudioSource();
+        if (hasVideo)
+            DCLVideoPlayerWrapper.player_get_video_format(vpc, ref videoWidth, ref videoHeight);
+
+        if (hasAudio)
+            initAudioSource();
 
         playerReady = true;
 
         while (true)
         {
-            if (videoTexture != null)
+            if (hasVideo && videoTexture != null)
                 GrabVideoFrame();
-            GrabAudioFrame();
+            
+            if (hasAudio)
+                GrabAudioFrame();
             yield return null;
         }
     }
@@ -403,6 +413,17 @@ public class DCLVideoPlayer : IDisposable
         return videoHeight;
     }
 
+    public bool HasVideo()
+    {
+        return hasVideo;
+    }
+
+    public bool HasAudio()
+    {
+        return hasAudio;
+    }
+
+    
     public void SetPlaybackRate(double rate)
     {
         if (playbackRate > 0.0)

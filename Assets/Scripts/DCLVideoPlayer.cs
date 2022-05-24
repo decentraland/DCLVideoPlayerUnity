@@ -123,7 +123,14 @@ public class DCLVideoPlayer : IDisposable
         do
         {
             yield return null;
-            result = (VideoPlayerState)DCLVideoPlayerWrapper.player_get_state(vpc);
+            if (vpc == IntPtr.Zero)
+            {
+                result = VideoPlayerState.Error;
+            }
+            else
+            {
+                result = (VideoPlayerState) DCLVideoPlayerWrapper.player_get_state(vpc);
+            }
         } while (result == VideoPlayerState.Loading);
 
         if (result == VideoPlayerState.Error)
@@ -159,11 +166,16 @@ public class DCLVideoPlayer : IDisposable
 
     public VideoPlayerState GetState()
     {
-        VideoPlayerState state = (VideoPlayerState) DCLVideoPlayerWrapper.player_get_state(vpc);
-        if (state == VideoPlayerState.Ready && !playerReady)
-            return VideoPlayerState.Loading;
-        else
+        if (vpc != IntPtr.Zero)
+        {
+            VideoPlayerState state = (VideoPlayerState) DCLVideoPlayerWrapper.player_get_state(vpc);
+            if (state == VideoPlayerState.Ready && !playerReady)
+                return VideoPlayerState.Loading;
+
             return state;
+        }
+
+        return VideoPlayerState.Error;
     }
 
     public void Dispose()
@@ -171,6 +183,7 @@ public class DCLVideoPlayer : IDisposable
         ReleaseLastVideoData();
         if (runCoroutine != null && coroutineStarter != null)
             coroutineStarter.StopCoroutine(runCoroutine);
+
         Debug.Log("Dispose DCLVideoPlayer!!");
         DCLVideoPlayerWrapper.player_destroy(vpc);
         vpc = IntPtr.Zero;
@@ -293,6 +306,7 @@ public class DCLVideoPlayer : IDisposable
 
     public void Play()
     {
+        if (vpc == IntPtr.Zero) return;
         if (DCLVideoPlayerWrapper.player_is_playing(vpc) == 0)
         {
             DCLVideoPlayerWrapper.player_play(vpc);
@@ -301,6 +315,7 @@ public class DCLVideoPlayer : IDisposable
 
     public void Pause()
     {
+        if (vpc == IntPtr.Zero) return;
         if (DCLVideoPlayerWrapper.player_is_playing(vpc) == 1)
         {
             DCLVideoPlayerWrapper.player_stop(vpc);
@@ -319,7 +334,6 @@ public class DCLVideoPlayer : IDisposable
 
     public void PrepareTexture()
     {
-        Debug.Log($"{this} UpdateVideoTexture");
         videoTexture = new Texture2D(videoWidth, videoHeight, TextureFormat.RGB24, false, false);
         videoTextureSize = videoWidth * videoHeight * 3;
     }
@@ -368,11 +382,13 @@ public class DCLVideoPlayer : IDisposable
 
     public float GetPlaybackPosition()
     {
+        if (vpc == IntPtr.Zero) return 0.0f;
         return DCLVideoPlayerWrapper.player_get_playback_position(vpc);
     }
 
     public float GetDuration()
     {
+        if (vpc == IntPtr.Zero) return 0.0f;
         if (GetState() == VideoPlayerState.Ready)
         {
             return DCLVideoPlayerWrapper.player_get_length(vpc);
@@ -385,21 +401,25 @@ public class DCLVideoPlayer : IDisposable
 
     public bool IsPlaying()
     {
+        if (vpc == IntPtr.Zero) return false;
         return DCLVideoPlayerWrapper.player_is_playing(vpc) == 1;
     }
 
     public bool IsBuffering()
     {
+        if (vpc == IntPtr.Zero) return false;
         return DCLVideoPlayerWrapper.player_is_buffering(vpc) == 1;
     }
 
     public void SetLoop(bool loop)
     {
+        if (vpc == IntPtr.Zero) return;
         DCLVideoPlayerWrapper.player_set_loop(vpc, loop ? 1 : 0);
     }
 
     public bool HasLoop()
     {
+        if (vpc == IntPtr.Zero) return false;
         return DCLVideoPlayerWrapper.player_has_loop(vpc) == 1;
     }
 
@@ -426,6 +446,7 @@ public class DCLVideoPlayer : IDisposable
     
     public void SetPlaybackRate(double rate)
     {
+        if (vpc == IntPtr.Zero) return;
         if (playbackRate > 0.0)
         {
             playbackRate = rate;

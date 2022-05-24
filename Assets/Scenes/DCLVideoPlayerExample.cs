@@ -36,7 +36,12 @@ public class DCLVideoPlayerExample : MonoBehaviour
 
     private void OnDestroy()
     {
-        videoPlayer.Dispose();
+        if (videoPlayer != null)
+        {
+            videoPlayer.Dispose();
+            videoPlayer = null;
+        }
+
         DCLVideoPlayer.StopAllThreads();
     }
 
@@ -50,6 +55,7 @@ public class DCLVideoPlayerExample : MonoBehaviour
                 case DCLVideoPlayer.VideoPlayerState.Error:
                     Debug.LogError("Decoder error");
                     videoPlayer.Dispose();
+                    videoPlayer = null;
                     break;
                 case DCLVideoPlayer.VideoPlayerState.Ready:
                     if (videoPlayer.HasVideo())
